@@ -1,6 +1,9 @@
 # feature_extraction.py
 import cv2
 import numpy as np
+from skimage import feature, transform
+import numpy as np
+
 
 def apply_canny_edge_detection(image, threshold1=100, threshold2=200):
     # Apply Canny edge detection
@@ -58,3 +61,30 @@ def apply_hough_circle_detection(image, contours, hierarchy, dp=1, minDist=20, p
         cv2.circle(image_with_circles, center, radius, (255, 255, 255), 2)
 
     return image_with_circles
+
+
+
+def apply_skimage_hough_circle_detection(image, radius_range=(10, 50), num_peaks=10):
+    # Convert image to grayscale if it's not already in grayscale
+    if len(image.shape) > 2:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Apply Hough Circle Transform
+    hough_radii = np.arange(radius_range[0], radius_range[1], 2)
+    hough_res = transform.hough_circle(image, hough_radii)
+
+    # Select peaks in Hough space
+    accums, cx, cy, radii = transform.hough_circle_peaks(hough_res, hough_radii,
+                                                         total_num_peaks=num_peaks)
+
+    # Create a copy of the original image to draw circles on
+    image_with_circles = np.copy(image)
+    
+    # Draw circles on the image
+    for center_y, center_x, radius in zip(cy, cx, radii):
+        circy, circx = np.ogrid[:image.shape[0], :image.shape[1]]
+        mask = (circy - center_y)**2 + (circx - center_x)**2 < radius**2
+        image_with_circles[mask] = 255
+
+    return image_with_circles
+
