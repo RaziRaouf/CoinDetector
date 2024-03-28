@@ -9,6 +9,13 @@ def apply_otsu_threshold(image):
     
     return segmented_image
 
+def apply_adaptive_threshold(image, block_size=21, c=7, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C):
+    
+    # Apply adaptive thresholding
+    segmented_image = cv2.adaptiveThreshold(image, 255, method, cv2.THRESH_BINARY, block_size, c)
+        
+    return segmented_image
+
 
 def color_based_segmentation(image):
     # Convert image from BGR to HSV color space
@@ -16,9 +23,9 @@ def color_based_segmentation(image):
     
     # Define color ranges for euro coins
     color_ranges = {
-        "1_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
-        "2_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
-        "5_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
+        "1_cent": [(0, 100, 100), (10, 255, 255)],    # Reddish color
+        "2_cent": [(0, 100, 100), (10, 255, 255)],    # Reddish color
+        "5_cent": [(0, 100, 100), (10, 255, 255)],    # Reddish color
         "10_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
         "20_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
         "50_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
@@ -35,21 +42,23 @@ def color_based_segmentation(image):
         # Threshold the HSV image to get only pixels within the specified color range
         mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
         
+        # Apply adaptive thresholding directly to the binary mask
+        mask_adaptive_threshold = apply_adaptive_threshold(mask, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
+        
+        # Combine the adaptive threshold mask with the color range mask
+        mask_combined = cv2.bitwise_and(mask, mask_adaptive_threshold)
+        
         # Apply the mask to the original image
-        coin_segment = cv2.bitwise_and(image, image, mask=mask)
+        coin_segment = cv2.bitwise_and(image, image, mask=mask_combined)
         
         # Add the segmented coin to the segmented image
         segmented_image = cv2.add(segmented_image, coin_segment)
+
+    # Convert the color-based segmented image to grayscale
+    segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
     
     return segmented_image
 
-
-def apply_adaptive_threshold(image, block_size=21, c=7, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C):
-    
-    # Apply adaptive thresholding
-    segmented_image = cv2.adaptiveThreshold(image, 255, method, cv2.THRESH_BINARY, block_size, c)
-        
-    return segmented_image
 
 def edge_based_segmentation(image):
     # Convert the image to grayscale
