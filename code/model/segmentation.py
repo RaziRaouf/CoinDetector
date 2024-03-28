@@ -35,11 +35,6 @@ def color_based_segmentation(image):
         # Threshold the HSV image to get only pixels within the specified color range
         mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
         
-        # Apply morphological operations to remove noise and refine the mask
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        
         # Apply the mask to the original image
         coin_segment = cv2.bitwise_and(image, image, mask=mask)
         
@@ -54,4 +49,22 @@ def apply_adaptive_threshold(image, block_size=21, c=7, method=cv2.ADAPTIVE_THRE
     # Apply adaptive thresholding
     segmented_image = cv2.adaptiveThreshold(image, 255, method, cv2.THRESH_BINARY, block_size, c)
         
+    return segmented_image
+
+def edge_based_segmentation(image):
+    # Convert the image to grayscale
+    grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Apply Canny edge detection
+    edges = cv2.Canny(grayscale_image, 30, 100)  # Adjust thresholds as needed
+    
+    # Find contours in the edge-detected image
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Create a black background image
+    segmented_image = np.zeros_like(image)
+    
+    # Draw contours on the segmented image
+    cv2.drawContours(segmented_image, contours, -1, (255, 255, 255), thickness=cv2.FILLED)  # Fills contours with white
+    
     return segmented_image
