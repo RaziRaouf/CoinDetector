@@ -1,5 +1,7 @@
 # segmentation.py
 import cv2
+import numpy as np
+from postprocessing import *
 
 def apply_otsu_threshold(image):
     # Apply Otsu's thresholding
@@ -7,26 +9,49 @@ def apply_otsu_threshold(image):
     
     return segmented_image
 
-def apply_adaptive_threshold(image, block_size=11, c=2):
-    # Apply adaptive thresholding
-    segmented_image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, block_size, c)
+
+def color_based_segmentation(image):
+    # Convert image from BGR to HSV color space
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    
+    # Define color ranges for euro coins
+    color_ranges = {
+        "1_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
+        "2_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
+        "5_cent": [(0, 100, 100), (20, 255, 255)],    # Reddish color
+        "10_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
+        "20_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
+        "50_cent": [(0, 100, 100), (20, 255, 255)],   # Reddish color
+        "1_euro": [(20, 100, 100), (35, 255, 255)],  # Gold color
+        "2_euro": [(20, 100, 100), (35, 255, 255)]   # Gold color
+    }
+    
+    # Initialize segmented image
+    segmented_image = np.zeros_like(image)
+    
+    # Apply color-based segmentation for each coin denomination
+    for coin, (lower, upper) in color_ranges.items():
+        print("Segmenting", coin, "with HSV range:", lower, "-", upper)
+        # Threshold the HSV image to get only pixels within the specified color range
+        mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
+        
+        # Apply morphological operations to remove noise and refine the mask
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        
+        # Apply the mask to the original image
+        coin_segment = cv2.bitwise_and(image, image, mask=mask)
+        
+        # Add the segmented coin to the segmented image
+        segmented_image = cv2.add(segmented_image, coin_segment)
     
     return segmented_image
 
-def apply_erosion(image, kernel_size=3, iterations=1):
-    # Define the structuring element for erosion
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
-    
-    # Apply erosion
-    eroded_image = cv2.erode(image, kernel, iterations=iterations)
-    
-    return eroded_image
 
-def apply_dilation(image, kernel_size=3, iterations=1):
-    # Define the structuring element for dilation
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
+def apply_adaptive_threshold(image, block_size=21, c=7, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C):
     
-    # Apply dilation
-    dilated_image = cv2.dilate(image, kernel, iterations=iterations)
-    
-    return dilated_image
+    # Apply adaptive thresholding
+    segmented_image = cv2.adaptiveThreshold(image, 255, method, cv2.THRESH_BINARY, block_size, c)
+        
+    return segmented_image

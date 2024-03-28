@@ -27,20 +27,3 @@ def apply_histogram_equalization(image):
     
     return equalized_image
 
-def apply_erosion(image, kernel_size=3, iterations=1):
-    # Define the structuring element for erosion
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
-    
-    # Apply erosion
-    eroded_image = cv2.erode(image, kernel, iterations=iterations)
-    
-    return eroded_image
-
-def apply_dilation(image, kernel_size=3, iterations=1):
-    # Define the structuring element for dilation
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_size, kernel_size))
-    
-    # Apply dilation
-    dilated_image = cv2.dilate(image, kernel, iterations=iterations)
-    
-    return dilated_image
