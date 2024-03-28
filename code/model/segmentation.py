@@ -10,17 +10,21 @@ def apply_otsu_threshold(image):
     return segmented_image
 
 def apply_adaptive_threshold(image, block_size=21, c=7, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C):
-    
     # Apply adaptive thresholding
     segmented_image = cv2.adaptiveThreshold(image, 255, method, cv2.THRESH_BINARY, block_size, c)
-        
     return segmented_image
-
 
 def color_based_segmentation(image):
     # Convert image from BGR to HSV color space
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    
+
+    # Initialize segmented image
+    segmented_image = np.zeros_like(image)
+
+    # Apply adaptive thresholding on the saturation channel to adapt to lighting conditions
+    saturation_channel = hsv_image[:, :, 1]
+    adaptive_threshold = apply_adaptive_threshold(saturation_channel)
+
     # Define color ranges for euro coins
     color_ranges = {
         "1_cent": [(0, 100, 100), (10, 255, 255)],    # Reddish color
@@ -32,24 +36,18 @@ def color_based_segmentation(image):
         "1_euro": [(20, 100, 100), (35, 255, 255)],  # Gold color
         "2_euro": [(20, 100, 100), (35, 255, 255)]   # Gold color
     }
-    
-    # Initialize segmented image
-    segmented_image = np.zeros_like(image)
-    
+
     # Apply color-based segmentation for each coin denomination
     for coin, (lower, upper) in color_ranges.items():
         print("Segmenting", coin, "with HSV range:", lower, "-", upper)
         # Threshold the HSV image to get only pixels within the specified color range
         mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
         
-        # Apply adaptive thresholding directly to the binary mask
-        mask_adaptive_threshold = apply_adaptive_threshold(mask, method=cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
-        
-        # Combine the adaptive threshold mask with the color range mask
-        mask_combined = cv2.bitwise_and(mask, mask_adaptive_threshold)
-        
+        # Apply the adaptive thresholding mask to refine the segmentation
+        mask = cv2.bitwise_and(mask, adaptive_threshold)
+
         # Apply the mask to the original image
-        coin_segment = cv2.bitwise_and(image, image, mask=mask_combined)
+        coin_segment = cv2.bitwise_and(image, image, mask=mask)
         
         # Add the segmented coin to the segmented image
         segmented_image = cv2.add(segmented_image, coin_segment)
