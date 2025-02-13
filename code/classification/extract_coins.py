@@ -4,7 +4,7 @@ import json
 import math
 
 # Paths
-images_dir = "dataset/processed_images"  # Directory containing images
+images_dir = "dataset/images"  # Directory containing images
 json_dir = "dataset/labels"              # Directory containing JSON files
 output_dir = "dataset/cropped_coins"     # Directory to save cropped coins
 
